@@ -34,4 +34,11 @@ class Product extends Model
     {
         return asset('storage/' . $this->image);
     }
+
+    public function quotes()
+    {
+        return $this->belongsToMany(Quote::class)
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,8 +36,16 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $flash = $request->session()->get('flash');
         return array_merge(parent::share($request), [
-            //
+            'customer' => $this->getCustomer(),
+            'flash' => $flash,
         ]);
+    }
+
+    private function getCustomer(): ?\Illuminate\Contracts\Auth\Authenticatable
+    {
+
+        return Auth::guard('customer')->user();
     }
 }

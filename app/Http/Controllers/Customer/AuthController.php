@@ -30,7 +30,7 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
         if (Auth::guard('customer')->attempt($credentials)) {
-            return redirect()->intended(route('index'));
+            return redirect()->intended(route('dashboard'));
         }
 
         return back()->withErrors([
@@ -71,7 +71,7 @@ class AuthController extends Controller
         ]);
 
         Auth::guard('customer')->login($customer);
-        return redirect()->route('index');
+        return redirect()->route('dashboard');
     }
 
 
@@ -106,7 +106,7 @@ class AuthController extends Controller
             });
         }
 
-        return back()->with('status', [
+        return back()->with('flash', [
             'message' => __('We have emailed your password reset link!'),
             'status_code' => 200,
             'email_request' => $request->email,
@@ -148,7 +148,7 @@ class AuthController extends Controller
 
         return redirect()
             ->route('customer.login')
-            ->with('status', [
+            ->with('flash', [
                 'message' => __('Your password has been reset!'),
                 'status_code' => 200,
             ]);
