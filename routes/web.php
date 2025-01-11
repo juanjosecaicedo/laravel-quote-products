@@ -26,6 +26,8 @@ Route::middleware([\App\Http\Middleware\RedirectIfNotCustomer::class])->prefix('
 });
 
 Route::post('/add-to-cart', [QuoteController::class, 'addToCart'])->name('quotes.addProduct');
+Route::get('/cart', [QuoteController::class, 'cart'])->name('quotes.cart');
+Route::get('/export-quote-pdf', [QuoteController::class, 'exportPdf'])->name('quotes.exportPdf');
 
 
 

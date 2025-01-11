@@ -4,21 +4,49 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx
 import {Button} from "@/components/ui/button.tsx";
 import {ShoppingBag} from "lucide-react";
 import {toast} from "sonner";
-
+import {Quote} from "@/interfaces/quote.ts";
+import {Page} from "@inertiajs/core/types/types";
+import {useEffect} from "react";
+import axios from "axios";
 
 type Props = {
-  products: Product[]
+  products: Product[],
+  flash: {
+    message: string
+    status_code: number
+    quote: Quote
+  },
 }
 
 export default function Index() {
   const props = usePage<Props>().props;
 
+  useEffect(() => {
+    axios.get('/cart').then(response => {
+      if (response) {
+        const event = new CustomEvent('cart-updated', {
+          detail: {
+            quote: response.data.quote,
+          }
+        })
+        window.dispatchEvent(event);
+      }
+    })
+
+  }, []);
+
   const addToCart = (product: Product) => {
+    // @ts-ignore
     router.post('/add-to-cart', {
       product_id: product.id,
       quantity: 1
     }, {
-      onSuccess: (respose) => {
+      // @ts-ignore
+      onSuccess: (response: Page<Props>) => {
+        if (!response.props.flash) {
+          return;
+        }
+
         toast.success('Product added to cart', {
           position: 'top-right',
           classNames: {
@@ -27,14 +55,14 @@ export default function Index() {
             icon: 'text-green-500',
           }
         });
-        console.log(respose)
 
         const event = new CustomEvent('cart-updated', {
           detail: {
-            product,
-            quote: respose?.props?.flash,
+            quote: response.props.flash.quote,
           }
-        })
+        });
+
+        window.dispatchEvent(event);
       }
     })
   }

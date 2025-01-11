@@ -4,46 +4,50 @@ namespace App\Http\Controllers;
 
 use App\Models\Quote;
 use App\Models\QuoteItem;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class QuoteController extends Controller
 {
-    /*public function addToCart(Request $request)
+    public function cart(): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'customer_email' => 'nullable|email|max:255',
-            'products' => 'required|array', // Array de productos
-            'products.*.id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-        ]);
-        $quoteNumber = Str::uuid();
-        $total = 0;
-
-        $quote = Quote::create([
-            'customer_email' => $validated['customer_email'],
-            'quote_number' => $quoteNumber,
-            'total' => $total,
-        ]);
-
-        foreach ($validated['products'] as $productData) {
-            $product = Product::find($productData['id']);
-            $quantity = $productData['quantity'];
-            $total += $product->price * $quantity;
-            $quote->products()->attach($product->id, ['quantity' => $quantity]);
+        $customer = Auth::guard('customer');
+        if (!$customer->check()) {
+            return response()->json([]);
         }
 
-        $quote->total = $total;
-        $quote->save();
-    }*/
+        $email = $customer->user()->email;
+
+        try {
+            $quote = Quote::where('customer_email', $email)
+                ->where('is_active', true)
+                ->first();
+
+            return response()->json([
+                'quote' => $quote->load(['quoteItems.product']),
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([]);
+        }
+    }
 
     public function addToCart(Request $request)
     {
-        $quote = $this->getQuote();
         $validation = $request->validate([
             'product_id' => 'required|exists:products,id',
         ]);
+
+        $quote = $this->getQuote();
+        if (!$quote) {
+            return redirect()->route('login')->with('flash', [
+                'message' => 'Please login to add products to cart',
+                'status_code' => 401,
+            ]);
+        }
 
         $existingItem = QuoteItem::where('quote_id', $quote->id)
             ->where('product_id', $validation['product_id'])
@@ -82,7 +86,7 @@ class QuoteController extends Controller
     {
         $customer = Auth::guard('customer');
         if (!$customer->check()) {
-            return redirect()->route('customer.login');
+            return;
         }
 
         $email = $customer->user()->email;
@@ -100,5 +104,57 @@ class QuoteController extends Controller
             ]);
         }
         return $quote;
+    }
+
+    private function loadQuote()
+    {
+        $customer = Auth::guard('customer');
+        if (!$customer->check()) {
+            return null;
+        }
+        $email = $customer->user()->email;
+        $quote = Quote::where('customer_email', $email)
+            ->where('is_active', true)
+            ->first();
+
+        return $quote->load(['quoteItems.product']);
+    }
+
+
+    public function exportPdf(): \Symfony\Component\HttpFoundation\StreamedResponse|RedirectResponse
+    {
+        $quote = $this->loadQuote();
+        if (!$quote) {
+            return back()->with('flash', [
+                'status_code' => 404,
+                'message' => __('Quote not found')
+            ]);
+        }
+
+
+        // Configurar Dompdf
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $dompdf = new Dompdf($options);
+
+        // Generar contenido HTML para el PDF
+        $html = view('quotes.pdf', ['quote' => $quote])->render();
+
+        // Cargar HTML dentro de Dompdf
+        $dompdf->loadHtml($html);
+
+        // Opcional: Configurar el tamaño y orientación del PDF
+        $dompdf->setPaper('A4', 'portrait');
+
+        // Renderizar el PDF
+        $dompdf->render();
+
+        // Enviar el PDF como respuesta para su descarga
+        $quote->is_active = false;
+        $quote->save();
+        return response()->streamDownload(
+            fn() => print($dompdf->output()),
+            'quote-' . $quote->quote_number . '.pdf'
+        );
     }
 }
