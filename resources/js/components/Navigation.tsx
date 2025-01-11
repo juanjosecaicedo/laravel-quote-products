@@ -142,7 +142,7 @@ export default function Navigation() {
                   Home
                 </Link>
 
-                <Button variant="link" onClick={() => setOpen(true)}>
+                <Button variant="link" className="justify-start" onClick={() => setOpen(true)}>
                   <ShoppingBag/>
                   <Badge className="p-1 text-[12px] leading-none">{quantity}</Badge>
                 </Button>
