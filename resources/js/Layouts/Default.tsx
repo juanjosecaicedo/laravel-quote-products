@@ -7,7 +7,7 @@ export default function Default({children}: { children: React.ReactNode }) {
   return (
     <>
       <Navigation/>
-      <main className="max-w-screen-lg mt-5 mx-auto px-2 md:px-0">
+      <main className="max-w-screen-lg min-h-[85vh] mt-5 mx-auto px-2 md:px-0">
         {children}
         <Toaster/>
       </main>

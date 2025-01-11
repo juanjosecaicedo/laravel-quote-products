@@ -43,7 +43,7 @@ class QuoteController extends Controller
 
         $quote = $this->getQuote();
         if (!$quote) {
-            return redirect()->route('login')->with('flash', [
+            return redirect()->route('customer.login')->with('flash', [
                 'message' => 'Please login to add products to cart',
                 'status_code' => 401,
             ]);

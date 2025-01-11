@@ -43,7 +43,8 @@ export default function Index() {
     }, {
       // @ts-ignore
       onSuccess: (response: Page<Props>) => {
-        if (!response.props.flash) {
+        console.log(response)
+        if (response.props.flash.status_code === 401) {
           return;
         }
 
