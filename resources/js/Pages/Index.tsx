@@ -8,6 +8,7 @@ import {Quote} from "@/interfaces/quote.ts";
 import {Page} from "@inertiajs/core/types/types";
 import {useEffect} from "react";
 import axios from "axios";
+import {priceFormat} from "@/lib/utils.ts";
 
 type Props = {
   products: Product[],
@@ -86,6 +87,7 @@ export default function Index() {
                 <hr/>
                 <CardTitle className="font-normal">{product.name}</CardTitle>
                 <p className="mt-1 text-sm">SKU: <span className="font-semibold">{product.sku}</span></p>
+                <p className="mt-1 text-sm"><span className="font-semibold">{priceFormat(product.price)}</span></p>
                 {product.stock < 1 ? (
                   <p className="mt-1 text-red-500">Out of stock</p>
                 ) : (
