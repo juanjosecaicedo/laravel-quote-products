@@ -82,17 +82,18 @@ class QuoteController extends Controller
         ]);
     }
 
-    private function getQuote()
+
+    private function getQuote($is_active = true)
     {
         $customer = Auth::guard('customer');
         if (!$customer->check()) {
-            return;
+            return null;
         }
 
         $email = $customer->user()->email;
 
         $quote = Quote::where('customer_email', $email)
-            ->where('is_active', true)
+            ->where('is_active', $is_active)
             ->first();
 
         if (!$quote) {
@@ -131,27 +132,39 @@ class QuoteController extends Controller
             ]);
         }
 
-
-        // Configurar Dompdf
         $options = new Options();
         $options->set('defaultFont', 'Helvetica');
         $dompdf = new Dompdf($options);
-
-        // Generar contenido HTML para el PDF
         $html = view('quotes.pdf', ['quote' => $quote])->render();
-
-        // Cargar HTML dentro de Dompdf
         $dompdf->loadHtml($html);
-
-        // Opcional: Configurar el tamaño y orientación del PDF
         $dompdf->setPaper('A4', 'portrait');
-
-        // Renderizar el PDF
         $dompdf->render();
-
-        // Enviar el PDF como respuesta para su descarga
         $quote->is_active = false;
         $quote->save();
+        return response()->streamDownload(
+            fn() => print($dompdf->output()),
+            'quote-' . $quote->quote_number . '.pdf'
+        );
+    }
+
+    private function getPdf(Quote $quote): Dompdf
+    {
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $dompdf = new Dompdf($options);
+        $html = view('quotes.pdf', ['quote' => $quote])->render();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $quote->is_active = false;
+        $quote->save();
+        return $dompdf;
+    }
+
+    public function exportPdfById(Request $request, $id): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $quote = Quote::where('id', $id)->firstOrFail();
+        $dompdf = $this->getPdf($quote);
         return response()->streamDownload(
             fn() => print($dompdf->output()),
             'quote-' . $quote->quote_number . '.pdf'
